@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard • IoT Ponto{% endblock %}
+{% block breadcrumb %}Home / Dashboard{% endblock %}
+
+{% block content %}
+  <div class="grid md:grid-cols-4 gap-4 mb-6">
+    <div class="p-4 bg-white border rounded-2xl">
+      <div class="text-xs text-gray-500">Voluntários ativos</div>
+      <div class="text-2xl font-semibold">{{ voluntarios_ativos or 0 }}</div>
+    </div>
+
+    <div class="p-4 bg-white border rounded-2xl">
+      <div class="text-xs text-gray-500">Presenças hoje</div>
+      <div class="text-2xl font-semibold">{{ presencas_hoje or 0 }}</div>
+    </div>
+
+    <div class="p-4 bg-white border rounded-2xl">
+      <div class="text-xs text-gray-500">Dispositivos online</div>
+      <div class="text-2xl font-semibold">{{ dispositivos_online or 0 }}</div>
+    </div>
+
+    <div class="p-4 bg-white border rounded-2xl">
+      <div class="text-xs text-gray-500">Usuário</div>
+      <div class="text-sm">{{ current_user.nome }} • {{ current_user.email }}</div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if usuario %}Editar Usuário{% else %}Novo Usuário{% endif %}
+{% endblock %}
+
+{% block breadcrumb %}
+  Home / Usuários / {% if usuario %}Editar{% else %}Novo{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="bg-white border rounded-2xl p-6 max-w-2xl mx-auto shadow-md">
+  <h2 class="text-xl font-semibold mb-6">
+    {% if usuario %}Editar Usuário{% else %}Novo Usuário{% endif %}
+  </h2>
+
+  <form method="POST" class="space-y-4">
+    <!-- Nome -->
+    <div>
+      <label class="block text-sm font-medium mb-1">Nome</label>
+      <input type="text" name="nome" class="w-full rounded-lg border border-gray-300 p-2"
+             value="{{ usuario.nome if usuario else '' }}" required>
+    </div>
+
+    <!-- Sobrenome -->
+    <div>
+      <label class="block text-sm font-medium mb-1">Sobrenome</label>
+      <input type="text" name="sobrenome" class="w-full rounded-lg border border-gray-300 p-2"
+             value="{{ usuario.sobrenome if usuario else '' }}">
+    </div>
+
+    <!-- CPF -->
+    <div>
+      <label class="block text-sm font-medium mb-1">CPF</label>
+      <input type="text" name="cpf" class="w-full rounded-lg border border-gray-300 p-2"
+             value="{{ usuario.cpf if usuario else '' }}">
+    </div>
+
+    <!-- E-mail -->
+    <div>
+      <label class="block text-sm font-medium mb-1">E-mail</label>
+      <input type="email" name="email" class="w-full rounded-lg border border-gray-300 p-2"
+             value="{{ usuario.email if usuario else '' }}" required>
+    </div>
+
+    <!-- Cartão RFID -->
+    <div>
+      <label class="block text-sm font-medium mb-1" for="id_cartao">Cartão RFID</label>
+      <input type="text" id="id_cartao" name="id_cartao" class="w-full rounded-lg border border-gray-300 p-2" readonly>
+      <p class="text-xs text-gray-500 mt-1">Aproxime o cartão no leitor para preencher automaticamente.</p>
+    </div>
+
+    <!-- Papel -->
+    <div>
+      <label class="block text-sm font-medium mb-1">Papel</label>
+      <select name="papel" class="w-full rounded-lg border border-gray-300 p-2">
+        <option value="voluntario" {% if usuario and usuario.role == "voluntario" %}selected{% endif %}>Voluntário</option>
+        <option value="admin" {% if usuario and usuario.role == "admin" %}selected{% endif %}>Administrador</option>
+      </select>
+    </div>
+
+    <!-- Senha -->
+    <div>
+      <label class="block text-sm font-medium mb-1">Senha</label>
+      <input type="password" name="senha" class="w-full rounded-lg border border-gray-300 p-2"
+             {% if not usuario %}required{% endif %}>
+      {% if usuario %}
+        <p class="text-xs text-gray-500 mt-1">Deixe em branco se não quiser alterar a senha.</p>
+      {% endif %}
+    </div>
+
+    <!-- Botões -->
+    <div class="flex justify-end space-x-2 mt-4">
+      <a href="{{ url_for('usuarios') }}" class="px-4 py-2 rounded-lg border border-gray-300">Cancelar</a>
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        {% if usuario %}Salvar Alterações{% else %}Criar Usuário{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+
+  <script>
+    // Atualiza o cartão automaticamente a cada 1s
+    setInterval(() => {
+      fetch('/cartao_atual')
+        .then(response => response.json())
+        .then(data => {
+          if (data.id_cartao) {
+            document.getElementById('id_cartao').value = data.id_cartao;
+          }
+        })
+        .catch(err => console.error('Erro ao buscar cartão:', err));
+    }, 1000);
+  </script>
+{% endblock %}

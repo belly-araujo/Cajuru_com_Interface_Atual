@@ -1,0 +1,14 @@
+<aside id="sidebar" class="w-72 bg-white border-r border-gray-200 fixed md:static inset-y-0 left-0 transform transition-transform -translate-x-full md:translate-x-0 z-40">
+  <div class="h-16 flex items-center px-6 border-b">
+    <span class="text-lg font-semibold">IoT Ponto</span>
+  </div>
+  <nav class="p-4 space-y-1">
+    <a href="{{ url_for('dashboard') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-100 {% if request.endpoint=='dashboard' %}bg-gray-100 font-medium{% endif %}">Dashboard</a>
+    <a href="{{ url_for('ponto') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-100 {% if request.endpoint=='ponto' %}bg-gray-100 font-medium{% endif %}">Sistema de Ponto</a>
+    <a href="{{ url_for('voluntarios') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-100 {% if request.endpoint=='voluntarios' %}bg-gray-100 font-medium{% endif %}">Voluntários</a>
+    <a href="{{ url_for('usuarios') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-100 {% if request.endpoint=='usuarios' %}bg-gray-100 font-medium{% endif %}">Usuários</a>
+    <a href="{{ url_for('iot_dashboard') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-100 {% if request.endpoint=='iot' %}bg-gray-100 font-medium{% endif %}">IoT / MQTT</a>
+    <a href="{{ url_for('relatorios') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-100 {% if request.endpoint=='relatorios' %}bg-gray-100 font-medium{% endif %}">Relatórios</a>
+    <a href="{{ url_for('suporte') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-100 {% if request.endpoint=='suporte' %}bg-gray-100 font-medium{% endif %}">Suporte (AVA)</a>
+  </nav>
+</aside>

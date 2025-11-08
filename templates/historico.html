@@ -1,0 +1,31 @@
+<div class="container mt-4">
+    <h2>📜 Histórico de Entradas e Saídas</h2>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Email</th>
+                <th>Ação</th>
+                <th>Horário</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td>{{ r.nome }}</td>
+                <td>{{ r.cpf }}</td>
+                <td>{{ r.email }}</td>
+                <td>
+                    {% if r.acao == 'entrada' %}
+                        <span class="badge bg-success">Entrada</span>
+                    {% else %}
+                        <span class="badge bg-danger">Saída</span>
+                    {% endif %}
+                </td>
+                <td>{{ r.horario }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div> 

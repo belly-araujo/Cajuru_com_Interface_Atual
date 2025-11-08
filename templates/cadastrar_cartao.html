@@ -1,0 +1,22 @@
+<h2>Cadastrar Cartão para {{ user.nome }} {{ user.sobrenome }}</h2>
+
+<form method="POST">
+  <label for="id_cartao">Aproxime o cartão no leitor...</label><br>
+  <input type="text" id="id_cartao" name="id_cartao" readonly required>
+  <button type="submit">Cadastrar</button>
+</form>
+
+<script>
+  setInterval(() => { 
+    fetch('/cartao_atual')
+      .then(response => response.json())
+      .then(data => {
+        if (data.id_cartao) {
+          document.getElementById('id_cartao').value = data.id_cartao;
+        }
+      })
+      .catch(err => console.error('Erro ao buscar cartão:', err));
+  }, 1000);
+</script>
+
+<a href="{{ url_for('usuarios') }}">Voltar</a>

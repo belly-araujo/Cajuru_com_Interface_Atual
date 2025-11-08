@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Usuários{% endblock %}
+{% block breadcrumb %}Home / Usuários{% endblock %}
+
+{% block content %}
+<div class="bg-white border rounded-2xl">
+  <div class="p-4 flex justify-between items-center">
+    <h2 class="font-medium">Usuários</h2>
+    <a href="{{ url_for('usuarios_novo') }}" class="px-3 py-2 rounded-lg bg-gray-900 text-white">
+      Adicionar
+    </a>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="text-left px-4 py-2">Nome</th>
+          <th class="text-left px-4 py-2">E-mail</th>
+          <th class="text-left px-4 py-2">Papel</th>
+          <th class="text-left px-4 py-2">CPF</th>
+          <th class="text-left px-4 py-2">Cartão</th>
+          <th class="text-left px-4 py-2 text-right">Ações</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for u in usuarios %}
+        <tr class="border-t hover:bg-gray-50">
+          <td class="px-4 py-2">{{ u.nome }} {{ u.sobrenome }}</td>
+          <td class="px-4 py-2">{{ u.email }}</td>
+          <td class="px-4 py-2">
+            {% if u.role == 'admin' %}
+              <span class="text-red-600 font-medium">Administrador</span>
+            {% else %}
+              <span class="text-gray-700">Voluntário</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2">{{ u.cpf or '-' }}</td>
+          <td class="px-4 py-2">{{ u.id_cartao or '-' }}</td>
+
+          <td class="px-4 py-2 text-right space-x-2">
+            <a href="{{ url_for('usuarios_editar', id=u.id) }}" class="text-blue-600 hover:underline">Editar</a>
+            <a href="{{ url_for('usuarios_excluir', id=u.id) }}" class="text-red-600 hover:underline"
+               onclick="return confirm('Tem certeza que deseja excluir este usuário?')">Excluir</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-6 text-center text-gray-500">
+            Nenhum usuário encontrado.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

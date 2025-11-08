@@ -1,0 +1,54 @@
+
+
+{% extends 'base.html' %}
+
+{% block title %}Sistema de Ponto{% endblock %}
+{% block breadcrumb %}Home / Ponto{% endblock %}
+
+{% block content %}
+<div class="bg-white border rounded-2xl p-4">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="font-medium text-lg">📜 Histórico de Entradas e Saídas</h2>
+    <div class="space-x-2">
+      <a href="{{ url_for('registrar_acao', acao='entrada') }}" class="px-3 py-2 rounded-lg border">Registrar Entrada</a>
+      <a href="{{ url_for('registrar_acao', acao='saida') }}" class="px-3 py-2 rounded-lg border">Registrar Saída</a>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="text-left px-4 py-2">Nome</th>
+          <th class="text-left px-4 py-2">CPF</th>
+          <th class="text-left px-4 py-2">Email</th>
+          <th class="text-left px-4 py-2">Ação</th>
+          <th class="text-left px-4 py-2">Horário</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        <tr class="border-t">
+          <td class="px-4 py-2">{{ r.nome }}</td>
+          <td class="px-4 py-2">{{ r.cpf }}</td>
+          <td class="px-4 py-2">{{ r.email }}</td>
+          <td class="px-4 py-2">
+            {% if r.acao.lower() == 'entrada' %}
+              <span class="px-2 py-0.5 rounded-full bg-green-100 text-green-800 font-medium">Entrada</span>
+            {% else %}
+              <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-medium">Saída</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2">{{ r.horario }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-4 py-6 text-center text-gray-500">Nenhum registro.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

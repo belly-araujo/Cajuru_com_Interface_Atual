@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "role": "admin",
+    "password_hash": "scrypt:32768:8:1$RcywN8RHB4PUrXM2$2bb2d3bdd737723509fd2e6164930a00eb8e776419a48a42a480b6ef59bf1fb4dc3201b74e11727976cfc236fb2783a25f9f83ee721d3896a277e9973346c498",
+    "created_at": "2025-11-05T21:12:24.298393"
+  },
+  {
+    "id": 101,
+    "name": "123@123",
+    "email": "123@123",
+    "role": "voluntario",
+    "password_hash": "scrypt:32768:8:1$dQqUnzdr3klwEeRt$b9326108357983636343503ad435f00abcac7baf476fad0946ebdf9e8ee940f9b6b667f181d9afc8bc514a7a83dc96d7e9fdee0194646b207cdd8961072423da",
+    "created_at": "2025-11-07T09:54:28.369986"
+  }
+]

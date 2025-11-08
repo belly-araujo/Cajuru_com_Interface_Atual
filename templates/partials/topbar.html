@@ -1,0 +1,12 @@
+<header class="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6 sticky top-0">
+  <div class="flex items-center gap-2">
+    <button class="md:hidden p-2 rounded-lg border" onclick="toggleSidebar()" aria-label="Abrir menu">☰</button>
+    <div class="text-sm text-gray-500">{% block breadcrumb %}{% endblock %}</div>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-sm text-gray-600">Olá, {{ current_user.nome if current_user.is_authenticated else 'Visitante' }}</span>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('logout') }}" class="text-sm px-3 py-1.5 bg-gray-800 text-white rounded-lg">Sair</a>
+    {% endif %}
+  </div>
+</header>

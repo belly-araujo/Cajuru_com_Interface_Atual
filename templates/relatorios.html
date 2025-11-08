@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios{% endblock %}
+{% block breadcrumb %}Home / Relatórios{% endblock %}
+{% block content %}
+<div class="bg-white border rounded-2xl p-6">
+  <h2 class="font-medium mb-4">Histórico de ações</h2>
+  <div class="overflow-x-auto mb-8">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="text-left px-4 py-2">Nome</th>
+          <th class="text-left px-4 py-2">Ação</th>
+          <th class="text-left px-4 py-2">Horário</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        <tr class="border-t">
+          <td class="px-4 py-2">{{ r.nome }}</td>
+          <td class="px-4 py-2">{{ r.acao }}</td>
+          <td class="px-4 py-2">{{ r.horario }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="font-medium mb-4">Resumo de Ações por Voluntário</h2>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="text-left px-4 py-2">Voluntário</th>
+          <th class="text-left px-4 py-2">Total de Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for nome, total in resumo.items() %}
+        <tr class="border-t">
+          <td class="px-4 py-2">{{ nome }}</td>
+          <td class="px-4 py-2">{{ total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
