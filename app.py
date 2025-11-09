@@ -10,6 +10,12 @@ from flask import jsonify
 from dotenv import load_dotenv
 from models.users import User
 import mysql.connector
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from io import BytesIO
+from flask import make_response
 
 # --- Configuração base ---
 app = Flask(__name__, template_folder="templates")
@@ -507,6 +513,63 @@ def ponto():
     ) or []
 
     return render_template("ponto.html", registros=registros)
+
+@app.route("/ponto/pdf")
+@login_required
+def gerar_pdf_historico():
+    # 🔸 Consulta os registros do banco
+    registros = db.execute_query(
+        "SELECT nome, cpf, email, acao, horario FROM historico ORDER BY horario DESC"
+    ) or []
+
+    # 🔸 Cria o buffer de bytes
+    buffer = BytesIO()
+
+    # 🔸 Define o documento
+    pdf = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elementos = []
+
+    # 🔹 Título
+    elementos.append(Paragraph("<b>Relatório de Histórico de Ações</b>", styles["Title"]))
+    elementos.append(Spacer(1, 12))
+
+    # 🔹 Cabeçalhos da tabela
+    dados = [["Nome", "CPF", "Email", "Ação", "Horário"]]
+
+    # 🔹 Adiciona linhas da tabela
+    for r in registros:
+        dados.append([
+            r["nome"],
+            r.get("cpf", "-"),
+            r["email"],
+            r["acao"].capitalize(),
+            str(r["horario"])
+        ])
+
+    # 🔹 Cria a tabela com estilo
+    tabela = Table(dados, repeatRows=1)
+    tabela.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+
+    elementos.append(tabela)
+
+    # 🔹 Constrói o PDF
+    pdf.build(elementos)
+
+    # 🔹 Retorna o PDF para download
+    response = make_response(buffer.getvalue())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=historico.pdf'
+
+    return response
+
 
 # ------------------ MQTT CLIENT ------------------
 # 🔧 Configurações do broker local

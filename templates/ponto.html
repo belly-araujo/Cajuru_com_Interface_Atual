@@ -8,10 +8,12 @@
 {% block content %}
 <div class="bg-white border rounded-2xl p-4">
   <div class="flex justify-between items-center mb-4">
-    <h2 class="font-medium text-lg">📜 Histórico de Entradas e Saídas</h2>
+    <h2 class="font-medium text-lg">Histórico de Entradas e Saídas</h2>
     <div class="space-x-2">
       <a href="{{ url_for('registrar_acao', acao='entrada') }}" class="px-3 py-2 rounded-lg border">Registrar Entrada</a>
       <a href="{{ url_for('registrar_acao', acao='saida') }}" class="px-3 py-2 rounded-lg border">Registrar Saída</a>
+      <a href="{{ url_for('gerar_pdf_historico') }}" target="_blank" class="px-3 py-2 rounded-lg border bg-gray-100">Gerar PDF</a>
+
     </div>
   </div>
 
