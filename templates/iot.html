@@ -7,9 +7,6 @@
     <h2 class="fw-bold text-primary mb-0">
       <i class="bi bi-hdd-network me-2"></i> Dispositivos IoT
     </h2>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary btn-sm shadow-sm">
-      <i class="bi bi-arrow-left-circle me-1"></i> Voltar
-    </a>
   </div>
 
   <!-- Card Principal -->
@@ -53,6 +50,12 @@
       </div>
 
     </div>
+  </div>
+    <!-- Botão Voltar (embaixo, à direita) -->
+  <div class="text-end mt-4">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary px-4 py-2 rounded-3 shadow-sm">
+      <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
   </div>
 
 </div>

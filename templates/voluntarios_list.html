@@ -16,7 +16,7 @@
           <th class="text-left px-4 py-2">Nome</th>
           <th class="text-left px-4 py-2">Cartão RFID</th>
           <th class="text-left px-4 py-2">Status</th>
-          <th class="px-4 py-2 text-right">Ações</th>
+          <th class="text-center px-4 py-2">Ações</th>
         </tr>
       </thead>
 
@@ -27,14 +27,21 @@
             <a href="{{ url_for('voluntarios_editar', id=v.id) }}" class="hover:underline">
               {{ v.nome }} {{ v.sobrenome }}
             </a>
-            <td class="px-4 py-2">{{ v.id_cartao or '-' }}</td>
+          </td>
+
+          <td class="px-4 py-2">{{ v.id_cartao or '-' }}</td>
+
+          <!-- 👇 Coluna de Status -->
+          <td class="px-4 py-2">
             {% if v.ativo %}
               <span class="px-2 py-0.5 rounded bg-green-100 text-green-800">Ativo</span>
             {% else %}
               <span class="px-2 py-0.5 rounded bg-gray-100 text-gray-600">Inativo</span>
             {% endif %}
           </td>
-          <td class="px-4 py-2 text-right space-x-3">
+
+          <td class="px-4 py-2 text-center space-x-3">
+            <a href="{{ url_for('voluntarios_ver', id=v.id) }}" class="text-gray-700 hover:underline">Ver</a>
             <a href="{{ url_for('voluntarios_editar', id=v.id) }}" class="text-blue-700 hover:underline">Editar</a>
             <a href="{{ url_for('usuarios_excluir', id=v.id) }}"
                class="text-red-700 hover:underline"
@@ -45,7 +52,9 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="4" class="px-4 py-6 text-center text-gray-500">Nenhum voluntário encontrado.</td>
+          <td colspan="4" class="px-4 py-6 text-center text-gray-500">
+            Nenhum voluntário encontrado.
+          </td>
         </tr>
         {% endfor %}
       </tbody>

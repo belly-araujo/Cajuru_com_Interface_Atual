@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Ver Usuário{% endblock %}
+{% block breadcrumb %}Home / Usuários / Ver{% endblock %}
+
+{% block content %}
+<div class="bg-white border rounded-2xl max-w-3xl mx-auto p-6 shadow-md">
+  <h2 class="text-xl font-semibold mb-6">Detalhes do Usuário</h2>
+
+  <div class="space-y-4 text-sm">
+    <div>
+      <span class="font-medium text-gray-600">Nome:</span>
+      <span>{{ usuario.nome }} {{ usuario.sobrenome }}</span>
+    </div>
+
+    <div>
+      <span class="font-medium text-gray-600">CPF:</span>
+      <span>{{ usuario.cpf or '-' }}</span>
+    </div>
+
+    <div>
+      <span class="font-medium text-gray-600">E-mail:</span>
+      <span>{{ usuario.email }}</span>
+    </div>
+
+    <div>
+      <span class="font-medium text-gray-600">Cartão RFID:</span>
+      <span>{{ usuario.id_cartao or '-' }}</span>
+    </div>
+
+    <div>
+      <span class="font-medium text-gray-600">Papel:</span>
+      <span class="capitalize">{{ usuario.role }}</span>
+    </div>
+  </div>
+
+  <hr class="my-6">
+
+  <div class="space-y-2">
+    <h3 class="text-sm font-medium text-gray-700">Documentos Anexados:</h3>
+
+    {% if not (usuario.pdf1_path or usuario.pdf2_path or usuario.pdf3_path) %}
+      <p class="text-gray-500 text-sm">Nenhum PDF anexado.</p>
+    {% endif %}
+
+    {% if usuario.pdf1_path %}
+      <a href="{{ url_for('static', filename=usuario.pdf1_path) }}" target="_blank"
+         class="flex items-center text-blue-600 hover:underline">
+        📄 Documento 1
+      </a>
+    {% endif %}
+
+    {% if usuario.pdf2_path %}
+      <a href="{{ url_for('static', filename=usuario.pdf2_path) }}" target="_blank"
+         class="flex items-center text-blue-600 hover:underline">
+        📄 Documento 2
+      </a>
+    {% endif %}
+
+    {% if usuario.pdf3_path %}
+      <a href="{{ url_for('static', filename=usuario.pdf3_path) }}" target="_blank"
+         class="flex items-center text-blue-600 hover:underline">
+        📄 Documento 3
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="mt-6 flex justify-end space-x-2">
+    <a href="{{ url_for('usuarios_editar', id=usuario.id) }}"
+       class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+      Editar
+    </a>
+    <a href="{{ url_for('usuarios') }}"
+       class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition">
+      Voltar
+    </a>
+  </div>
+</div>
+{% endblock %}

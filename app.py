@@ -16,10 +16,21 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 from flask import make_response
+from werkzeug.utils import secure_filename
+
 
 # --- Configuração base ---
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "pedro_eas_gurias"  # troque em produção
+
+# Caminho relativo (sem o "static")
+app.config["UPLOAD_FOLDER"] = os.path.join("uploads", "pdfs")
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # limite de 16MB por arquivo
+ALLOWED_EXTENSIONS = {"pdf"}
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 ultimo_cartao_lido = None
 
@@ -122,7 +133,6 @@ def voluntarios_editar(id):
 
     user = user_data[0]
 
-    # Se for POST, atualiza os dados no banco
     if request.method == "POST":
         nome = request.form.get("nome")
         sobrenome = request.form.get("sobrenome")
@@ -131,25 +141,66 @@ def voluntarios_editar(id):
         id_cartao = request.form.get("id_cartao") or None
         papel = request.form.get("papel") or user["role"]
         senha = request.form.get("senha", "")
-        senha_hash = None 
         data_nascimento = request.form.get("data_nascimento") or None
-        
-        if senha:   
+
+        # PDFs
+        pdf1 = request.files.get("pdf1")
+        pdf2 = request.files.get("pdf2")
+        pdf3 = request.files.get("pdf3")
+
+        # Pasta de uploads
+        upload_folder = os.path.join(app.static_folder, "uploads", "voluntarios")
+        os.makedirs(upload_folder, exist_ok=True)
+
+        pdf1_path = user.get("pdf1_path")
+        pdf2_path = user.get("pdf2_path")
+        pdf3_path = user.get("pdf3_path")
+
+        # Se um novo PDF for enviado, substitui o antigo
+        if pdf1 and pdf1.filename != "":
+            filename1 = secure_filename(pdf1.filename)
+            save_path1 = os.path.join(upload_folder, filename1)
+            pdf1.save(save_path1)
+            pdf1_path = os.path.relpath(save_path1, app.static_folder).replace("\\", "/")
+
+        if pdf2 and pdf2.filename != "":
+            filename2 = secure_filename(pdf2.filename)
+            save_path2 = os.path.join(upload_folder, filename2)
+            pdf2.save(save_path2)
+            pdf2_path = os.path.relpath(save_path2, app.static_folder).replace("\\", "/")
+
+        if pdf3 and pdf3.filename != "":
+            filename3 = secure_filename(pdf3.filename)
+            save_path3 = os.path.join(upload_folder, filename3)
+            pdf3.save(save_path3)
+            pdf3_path = os.path.relpath(save_path3, app.static_folder).replace("\\", "/")
+
+        # Atualiza a senha se o campo não estiver vazio
+        if senha:
             senha_hash = generate_password_hash(senha)
             query_update = """
                 UPDATE users 
-                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, password_hash = %s, data_nascimento = %s
+                SET nome = %s, sobrenome = %s, cpf = %s, email = %s,
+                    id_cartao = %s, role = %s, password_hash = %s, data_nascimento = %s,
+                    pdf1_path = %s, pdf2_path = %s, pdf3_path = %s
                 WHERE id = %s
             """
-            params = (nome, sobrenome, cpf, email, id_cartao, papel, senha_hash, data_nascimento, id)
-
+            params = (
+                nome, sobrenome, cpf, email, id_cartao, papel, senha_hash, data_nascimento,
+                pdf1_path, pdf2_path, pdf3_path, id
+            )
         else:
             query_update = """
                 UPDATE users 
-                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, data_nascimento = %s
+                SET nome = %s, sobrenome = %s, cpf = %s, email = %s,
+                    id_cartao = %s, role = %s, data_nascimento = %s,
+                    pdf1_path = %s, pdf2_path = %s, pdf3_path = %s
                 WHERE id = %s
             """
-            params = (nome, sobrenome, cpf, email, id_cartao, papel, data_nascimento, id)
+            params = (
+                nome, sobrenome, cpf, email, id_cartao, papel, data_nascimento,
+                pdf1_path, pdf2_path, pdf3_path, id
+            )
 
         result = db.execute_query(query_update, params)
 
@@ -160,7 +211,7 @@ def voluntarios_editar(id):
 
         return redirect(url_for("voluntarios"))
 
-    # 🔸 Se for GET, mostra o formulário preenchido
+    # Se for GET, mostra o formulário preenchido
     return render_template("voluntario_form.html", voluntario=user)
 
 
@@ -404,6 +455,21 @@ def usuarios_novo():
     # Se for GET, só mostra o formulário
     return render_template("usuario_form.html")
 
+@app.route("/usuarios/<int:id>/ver")
+@login_required
+def usuarios_ver(id):
+    query = "SELECT * FROM users WHERE id = %s"
+    user_data = db.execute_query(query, (id,))
+
+    if not user_data:
+        flash("Usuário não encontrado.", "error")
+        return redirect(url_for("usuarios"))
+
+    usuario = user_data[0]
+
+    return render_template("usuario_ver.html", usuario=usuario)
+
+
 @app.route('/cadastrar_cartao/<int:user_id>', methods=['GET', 'POST'])
 def cadastrar_cartao(user_id):
     # Pega o usuário do banco
@@ -457,6 +523,22 @@ def voluntarios():
     voluntarios = db.execute_query(query)
     return render_template("voluntarios_list.html", voluntarios=voluntarios)
 
+@app.route("/voluntarios/<int:id>/ver")
+@login_required
+def voluntarios_ver(id):
+    query = "SELECT * FROM users WHERE id = %s AND role = 'voluntario'"
+    voluntario_data = db.execute_query(query, (id,))
+
+    if not voluntario_data:
+        flash("Voluntário não encontrado.", "error")
+        return redirect(url_for("voluntarios"))
+
+    voluntario = voluntario_data[0]
+
+    return render_template("voluntario_ver.html", voluntario=voluntario)
+
+
+
 @app.route("/voluntarios/novo", methods=["GET", "POST"])
 @login_required
 def voluntarios_novo():
@@ -470,22 +552,71 @@ def voluntarios_novo():
         senha = request.form.get("senha")
         id_cartao = request.form.get("id_cartao") or None
         data_nascimento = request.form.get("data_nascimento") or None
+        pdf1 = request.files.get("pdf1")
+        pdf2 = request.files.get("pdf2")
+        pdf3 = request.files.get("pdf3")
 
         if not nome or not email or not senha:
             flash("Preencha todos os campos.", "error")
             return render_template("voluntario_form.html", voluntario=None)
 
+        # Pasta de upload dentro da pasta static
+        upload_folder = os.path.join(app.root_path, "static", "uploads", "voluntarios")
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # PDF 1
+        pdf1_path = None
+        if pdf1 and pdf1.filename != "":
+            filename1 = secure_filename(pdf1.filename)
+            save_path1 = os.path.join(app.static_folder, "uploads", "voluntarios", filename1)
+            os.makedirs(os.path.dirname(save_path1), exist_ok=True)
+            pdf1.save(save_path1)
+            # Garante que o caminho no banco NÃO começa com 'static/'
+            pdf1_path = os.path.relpath(save_path1, app.static_folder).replace("\\", "/")
+
+        # PDF 2
+        pdf2_path = None
+        if pdf2 and pdf2.filename != "":
+            filename2 = secure_filename(pdf2.filename)
+            save_path2 = os.path.join(app.static_folder, "uploads", "voluntarios", filename2)
+            os.makedirs(os.path.dirname(save_path2), exist_ok=True)
+            pdf2.save(save_path2)
+            pdf2_path = os.path.relpath(save_path2, app.static_folder).replace("\\", "/")
+
+        # PDF 3
+        pdf3_path = None
+        if pdf3 and pdf3.filename != "":
+            filename3 = secure_filename(pdf3.filename)
+            save_path3 = os.path.join(app.static_folder, "uploads", "voluntarios", filename3)
+            os.makedirs(os.path.dirname(save_path3), exist_ok=True)
+            pdf3.save(save_path3)
+            pdf3_path = os.path.relpath(save_path3, app.static_folder).replace("\\", "/")
+
+
+
+        # Inserir no banco
         query = """
-            INSERT INTO users (nome, email, password_hash, role, id_cartao, data_nascimento)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO users (nome, email, password_hash, role, id_cartao, data_nascimento, pdf1_path, pdf2_path, pdf3_path)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        values = (nome, email, generate_password_hash(senha), "voluntario", id_cartao, data_nascimento)
+        values = (
+            nome,
+            email,
+            generate_password_hash(senha),
+            "voluntario",
+            id_cartao,
+            data_nascimento,
+            pdf1_path,
+            pdf2_path,
+            pdf3_path
+        )
         db.execute_query(query, values)
 
         flash("Voluntário cadastrado com sucesso!", "success")
         return redirect(url_for("voluntarios"))
 
     return render_template("voluntario_form.html", voluntario=None)
+
 
 @app.route("/iot")
 def iot_dashboard():

@@ -20,7 +20,7 @@
           <th class="text-left px-4 py-2">Papel</th>
           <th class="text-left px-4 py-2">CPF</th>
           <th class="text-left px-4 py-2">Cartão</th>
-          <th class="text-left px-4 py-2 text-right">Ações</th>
+          <th class="text-left px-4 py-2 text-center">Ações</th>
         </tr>
       </thead>
 
@@ -39,7 +39,8 @@
           <td class="px-4 py-2">{{ u.cpf or '-' }}</td>
           <td class="px-4 py-2">{{ u.id_cartao or '-' }}</td>
 
-          <td class="px-4 py-2 text-right space-x-2">
+          <td class="px-4 py-2 text-center space-x-2">
+            <a href="{{ url_for('usuarios_ver', id=u.id) }}" class="text-gray-700 hover:underline">Ver</a>
             <a href="{{ url_for('usuarios_editar', id=u.id) }}" class="text-blue-600 hover:underline">Editar</a>
             <a href="{{ url_for('usuarios_excluir', id=u.id) }}" class="text-red-600 hover:underline"
                onclick="return confirm('Tem certeza que deseja excluir este usuário?')">Excluir</a>
