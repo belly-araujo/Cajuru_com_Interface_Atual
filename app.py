@@ -467,6 +467,8 @@ def voluntarios_novo():
 
 @app.route("/iot")
 def iot_dashboard():
+    db.close()
+    db.connect()
     query = "SELECT * FROM devices ORDER BY nome ASC"
     dispositivos = db.execute_query(query) or []
     return render_template("iot.html", dispositivos=dispositivos)
@@ -568,6 +570,13 @@ def ao_mensagem(client, userdata, msg): #quando chega uma mensagem no topico
                 (user_id, nome, cpf, email, acao, hora)
             )
             mqtt_db.commit()  # confirma o insert
+
+            cursor.execute(
+            "UPDATE devices SET ultima_comunicacao = %s WHERE nome = 'Módulo RFID'",
+            (hora,)
+            )
+            mqtt_db.commit()
+
             cursor.close()
             mqtt_db.close()
             print(f"{hora} - {nome} registrou {acao.upper()} com cartão {id_cartao}")
@@ -592,9 +601,14 @@ def ao_mensagem(client, userdata, msg): #quando chega uma mensagem no topico
                 "VALUES (%s, %s, %s, %s, %s, %s)",
                 (user_id, nome, cpf, email, acao, hora)
             )
-            print("Vai inserir no histórico...")
             mqtt_db.commit()
-            print("Inserido com sucesso!")
+
+                # 🔸 Atualiza o dispositivo correspondente
+            cursor.execute(
+                "UPDATE devices SET ultima_comunicacao = %s WHERE nome = 'Teclado matricial'",
+                (hora,)
+            )
+            mqtt_db.commit()
 
             print(f"{hora} - {nome} CPF {cpf} registrou {acao.upper()}")
         else:
