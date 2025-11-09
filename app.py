@@ -9,9 +9,7 @@ import os, json, random
 from flask import jsonify
 from dotenv import load_dotenv
 from models.users import User
-
-
-
+import mysql.connector
 
 # --- Configuração base ---
 app = Flask(__name__, template_folder="templates")
@@ -317,8 +315,10 @@ def dashboard():
     # 3. Dispositivos online
     dispositivos_query = "SELECT COUNT(*) AS total FROM devices WHERE online = 1"
     try:
-        dispositivos_online = db.execute_query(dispositivos_query)["total"]
-    except:
+        result = db.execute_query(dispositivos_query)
+        dispositivos_online = result[0]["total"] if result else 0
+    except Exception as e:
+        print("⚠️ Erro ao consultar dispositivos online:", e)
         dispositivos_online = 0  # caso a tabela devices ainda não exista
 
     # 4. Retorna tudo pro template direto
@@ -496,12 +496,14 @@ def suporte():
 
 @app.route("/ponto")
 def ponto():
-    query = """
-        SELECT nome, cpf, email, acao, horario 
-        FROM historico
-        ORDER BY horario DESC
-    """
-    registros = db.execute_query(query) or []  # evita erro caso venha None
+    db.close()
+    db.connect()
+
+    # Busca os registros mais recentes
+    registros = db.execute_query(
+        "SELECT nome, cpf, email, acao, horario FROM historico ORDER BY horario DESC"
+    ) or []
+
     return render_template("ponto.html", registros=registros)
 
 # ------------------ MQTT CLIENT ------------------
@@ -520,6 +522,15 @@ def ao_conectar(client, userdata, flags, rc): #se o codigo de retorno for 0, con
     else:
         print("❌ Falha na conexão. Código:", rc)
 
+def get_mqtt_db_connection():
+    """Cria uma nova conexão exclusiva para o MQTT."""
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="isamanu0608@",
+        database="cajuru_com_interface"
+    )
+
 def ao_mensagem(client, userdata, msg): #quando chega uma mensagem no topico
     global ultimo_cartao_lido
     try:
@@ -531,78 +542,67 @@ def ao_mensagem(client, userdata, msg): #quando chega uma mensagem no topico
 
     hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S") #pega a hora atual para o historico
 
-    with app.app_context():
-        try:
-            if not db.connection or not db.connection.is_connected():
-                db.connect()
-
-            # [todo o código de processamento e INSERT do histórico aqui]
-
-            db.connection.commit()  # 🔹 força a gravação no banco
-        except Exception as e:
-            print("❌ Erro ao gravar no banco:", e)
-        finally:
-            db.close()  # 🔹 garante que a conexão é fechada
-
+    # --- Cria conexão exclusiva do MQTT ---
+    mqtt_db = get_mqtt_db_connection()
+    cursor = mqtt_db.cursor(dictionary=True)
 
     # --- Caso 1: RFID detectado ---
     if tipo == "rfid":
         id_cartao = dados.get("id", "desconhecido")
         ultimo_cartao_lido = id_cartao
-        query = "SELECT * FROM users WHERE id_cartao = %s"
-        usuario = db.execute_query(query, (id_cartao,))
+
+        cursor.execute("SELECT * FROM users WHERE id_cartao = %s", (id_cartao,))
+        usuario = cursor.fetchone() 
         if usuario:
-            user = usuario[0]
-            nome = user['nome']
-            cpf = user['cpf']
-            email= user['email']
-            user_id = user['id']
+            user_id = usuario["id"]
+            nome = usuario["nome"]
+            cpf = usuario["cpf"]
+            email = usuario["email"]
 
-            if id_cartao not in status_voluntarios or status_voluntarios[id_cartao] == "saida":
-                acao = "entrada"
-            else:
-                acao = "saida"
+            acao = "entrada" if status_voluntarios.get(id_cartao) != "entrada" else "saida"
+            status_voluntarios[id_cartao] = acao
 
-            status_voluntarios[id_cartao] = acao 
-
-            query_hist = """
-            INSERT INTO historico (user_id, nome, cpf, email, acao, horario)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            db.execute_query(query_hist, (user_id, nome, cpf, email, acao, hora))
-
-            print(f" {hora} - {nome} registrou com cartão {id_cartao,} - {acao.upper()}")
+            cursor.execute(
+                "INSERT INTO historico (user_id, nome, cpf, email, acao, horario) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (user_id, nome, cpf, email, acao, hora)
+            )
+            mqtt_db.commit()  # confirma o insert
+            cursor.close()
+            mqtt_db.close()
+            print(f"{hora} - {nome} registrou {acao.upper()} com cartão {id_cartao}")
         else:
             print(f"⚠️ {hora} - RFID {id_cartao} não cadastrado!")
 
     # --- Caso 3: CPF completo enviado ---
     elif tipo == "cpf":
         cpf = dados.get("cpf", "desconhecido")
-        query = "SELECT * FROM users WHERE cpf = %s"
-        usuario = db.execute_query(query, (cpf,))
+        cursor.execute("SELECT * FROM users WHERE cpf = %s", (cpf,))
+        usuario = cursor.fetchone()
         if usuario:
-            user = usuario
-            nome = user['nome']
-            email= user['email']
-            user_id = user['id']
+            user_id = usuario["id"]
+            nome = usuario["nome"]
+            email = usuario["email"]
 
-            if cpf not in status_voluntarios or status_voluntarios[cpf] == "saida":
-                acao = "entrada"
-            else:
-                acao = "saida"
-
+            acao = "entrada" if status_voluntarios.get(cpf) != "entrada" else "saida"
             status_voluntarios[cpf] = acao
 
-            query_hist = """
-            INSERT INTO historico (user_id, nome, cpf, email, acao, horario)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            db.execute_query(query_hist, (user_id, nome, cpf, email, acao, hora))
+            cursor.execute(
+                "INSERT INTO historico (user_id, nome, cpf, email, acao, horario) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (user_id, nome, cpf, email, acao, hora)
+            )
+            print("Vai inserir no histórico...")
+            mqtt_db.commit()
+            print("Inserido com sucesso!")
 
-            print(f"🧍 {hora} - Voluntário {nome} CPF {cpf} registrou {acao.upper()}")
-
+            print(f"{hora} - {nome} CPF {cpf} registrou {acao.upper()}")
         else:
             print(f"⚠️ {hora} - CPF {cpf} não cadastrado!")
+
+    # Fecha conexão do MQTT
+    cursor.close()
+    mqtt_db.close()
 
 # 🚀 Cria o cliente MQTT
 def iniciar_mqtt():

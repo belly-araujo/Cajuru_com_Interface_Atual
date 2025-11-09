@@ -4,7 +4,7 @@
     <div class="text-sm text-gray-500">{% block breadcrumb %}{% endblock %}</div>
   </div>
   <div class="flex items-center gap-3">
-    <span class="text-sm text-gray-600">Olá, {{ current_user.nome if current_user.is_authenticated else 'Visitante' }}</span>
+    <span class="text-sm text-gray-600">Olá, {{ current_user.nome if current_user.is_authenticated else 'Visitante' }}!<br>Bem-vindo(a)!</span>
     {% if current_user.is_authenticated %}
       <a href="{{ url_for('logout') }}" class="text-sm px-3 py-1.5 bg-gray-800 text-white rounded-lg">Sair</a>
     {% endif %}
