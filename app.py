@@ -4,7 +4,7 @@ import threading
 import paho.mqtt.client as mqtt
 from flask_login import (LoginManager, UserMixin, login_user, login_required,logout_user, current_user)
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, date
 import os, json, random
 from flask import jsonify
 from dotenv import load_dotenv
@@ -78,23 +78,24 @@ def usuarios_editar(id):
         papel = request.form.get("papel") or user["role"]
         senha = request.form.get("senha", "")
         senha_hash = None 
+        data_nascimento = request.form.get("data_nascimento") or None
         
         if senha:   
             senha_hash = generate_password_hash(senha)
             query_update = """
                 UPDATE users 
-                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, password_hash = %s
+                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, data_nascimento = %s, password_hash = %s
                 WHERE id = %s
             """
-            params = (nome, sobrenome, cpf, email, id_cartao, papel, senha_hash, id)
+            params = (nome, sobrenome, cpf, email, id_cartao, papel, data_nascimento, senha_hash, id)
 
         else:
             query_update = """
                 UPDATE users 
-                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s
+                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, data_nascimento = %s
                 WHERE id = %s
             """
-            params = (nome, sobrenome, cpf, email, id_cartao, papel, id)
+            params = (nome, sobrenome, cpf, email, id_cartao, papel, data_nascimento, id)
 
         result = db.execute_query(query_update, params)
 
@@ -131,23 +132,24 @@ def voluntarios_editar(id):
         papel = request.form.get("papel") or user["role"]
         senha = request.form.get("senha", "")
         senha_hash = None 
+        data_nascimento = request.form.get("data_nascimento") or None
         
         if senha:   
             senha_hash = generate_password_hash(senha)
             query_update = """
                 UPDATE users 
-                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, password_hash = %s
+                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, password_hash = %s, data_nascimento = %s
                 WHERE id = %s
             """
-            params = (nome, sobrenome, cpf, email, id_cartao, papel, senha_hash, id)
+            params = (nome, sobrenome, cpf, email, id_cartao, papel, senha_hash, data_nascimento, id)
 
         else:
             query_update = """
                 UPDATE users 
-                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s
+                SET nome = %s, sobrenome = %s, cpf = %s, email = %s, id_cartao = %s, role = %s, data_nascimento = %s
                 WHERE id = %s
             """
-            params = (nome, sobrenome, cpf, email, id_cartao, papel, id)
+            params = (nome, sobrenome, cpf, email, id_cartao, papel, data_nascimento, id)
 
         result = db.execute_query(query_update, params)
 
@@ -298,6 +300,7 @@ def logout():
 @app.route("/")
 @login_required
 def dashboard():
+    hoje = date.today()
     # 1. Número de voluntários ativos
     voluntarios_ativos_query = """
         SELECT COUNT(*) AS total 
@@ -326,6 +329,16 @@ def dashboard():
     except Exception as e:
         print("⚠️ Erro ao consultar dispositivos online:", e)
         dispositivos_online = 0  # caso a tabela devices ainda não exista
+    
+    aniversariantes_query = """
+        SELECT nome, sobrenome
+        FROM users
+        WHERE data_nascimento IS NOT NULL
+          AND DAY(data_nascimento) = %s
+          AND MONTH(data_nascimento) = %s
+    """
+    aniversariantes = db.execute_query(aniversariantes_query, (hoje.day, hoje.month)) or []
+
 
     # 4. Retorna tudo pro template direto
     return render_template(
@@ -333,6 +346,7 @@ def dashboard():
         voluntarios_ativos=voluntarios_ativos,
         presencas_hoje=presencas_hoje,
         dispositivos_online=dispositivos_online,
+        aniversariantes= aniversariantes,
         current_user=current_user
     )
 
@@ -363,6 +377,7 @@ def usuarios_novo():
         email = request.form.get("email", "").strip().lower()
         papel = request.form.get("papel", "voluntario")
         senha = request.form.get("senha", "").strip()
+        data_nascimento = request.form.get("data_nascimento") or None
 
         # 🔸 Validação básica
         if not nome or not email or not senha:
@@ -378,10 +393,10 @@ def usuarios_novo():
         # 🔸 Cria o novo usuário no banco
         senha_hash = generate_password_hash(senha)
         query = """
-            INSERT INTO users (nome, sobrenome, email, role, password_hash, ativo)
-            VALUES (%s, %s, %s, %s, %s, 1)
-        """
-        db.execute_query(query, (nome, sobrenome, email, papel, senha_hash))
+                INSERT INTO users (nome, sobrenome, email, role, password_hash, ativo, data_nascimento)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+        db.execute_query(query, (nome, sobrenome, email, papel, senha_hash, 1, data_nascimento))
 
         flash("Usuário criado com sucesso!", "success")
         return redirect(url_for("usuarios"))
@@ -454,16 +469,17 @@ def voluntarios_novo():
         email = request.form.get("email")
         senha = request.form.get("senha")
         id_cartao = request.form.get("id_cartao") or None
+        data_nascimento = request.form.get("data_nascimento") or None
 
         if not nome or not email or not senha:
             flash("Preencha todos os campos.", "error")
             return render_template("voluntario_form.html", voluntario=None)
 
         query = """
-            INSERT INTO users (nome, email, password_hash, role, id_cartao)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO users (nome, email, password_hash, role, id_cartao, data_nascimento)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
-        values = (nome, email, generate_password_hash(senha), "voluntario", id_cartao)
+        values = (nome, email, generate_password_hash(senha), "voluntario", id_cartao, data_nascimento)
         db.execute_query(query, values)
 
         flash("Voluntário cadastrado com sucesso!", "success")

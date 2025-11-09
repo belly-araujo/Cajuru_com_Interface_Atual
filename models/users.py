@@ -3,7 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
 class User(UserMixin):
-    def __init__(self, id, nome, sobrenome=None, email=None, password_hash=None, role=None, cpf=None, id_cartao=None, ativo=1):
+    def __init__(self, id, nome, sobrenome=None, email=None, password_hash=None, role=None, cpf=None, id_cartao=None, ativo=1, data_nascimento=None):
         self.id = id
         self.nome = nome
         self.sobrenome = sobrenome
@@ -13,6 +13,8 @@ class User(UserMixin):
         self.cpf = cpf
         self.id_cartao = id_cartao
         self.ativo = bool(ativo)
+        self.data_nascimento = data_nascimento
+        
 
 
     @property

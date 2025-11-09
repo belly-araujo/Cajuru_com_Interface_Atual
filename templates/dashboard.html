@@ -23,5 +23,54 @@
       <div class="text-xs text-gray-500">Usuário</div>
       <div class="text-sm">{{ current_user.nome }} • {{ current_user.email }}</div>
     </div>
+{% if aniversariantes %}
+<div id="aniversario-modal"
+     class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+  <div class="bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-500 text-white rounded-3xl shadow-2xl p-10 w-[500px] text-center relative animate-pop">
+
+    <!-- Botão de fechar -->
+    <button onclick="fecharModal()"
+            class="absolute top-4 right-5 text-white text-3xl font-bold hover:scale-110 transition">
+      &times;
+    </button>
+
+    <!-- Ícone e título -->
+    <div class="text-6xl mb-3 animate-bounce">🎉</div>
+    <h2 class="text-3xl font-extrabold mb-4 drop-shadow-lg">Hoje é dia de comemorar!</h2>
+
+    <!-- Lista de aniversariantes -->
+    <div class="bg-white bg-opacity-20 rounded-xl p-4 text-lg">
+      {% for p in aniversariantes %}
+        <p class="mb-2">🎂 <strong>{{ p.nome }} {{ p.sobrenome }}</strong> está fazendo aniversário!</p>
+      {% endfor %}
+    </div>
+
+    <p class="mt-4 text-sm opacity-80">Deseje um feliz aniversário! 💐</p>
   </div>
+</div>
+
+<!-- Estilos e animações -->
+<style>
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: pop 0.4s ease-out;
+}
+</style>
+
+<!-- Script -->
+<script>
+function fecharModal() {
+  document.getElementById('aniversario-modal').style.display = 'none';
+}
+// Fecha automaticamente depois de 10 segundos
+setTimeout(fecharModal, 10000);
+</script>
+{% endif %}
+
+
+  </div>
+
 {% endblock %}

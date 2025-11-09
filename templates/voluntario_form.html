@@ -43,6 +43,13 @@
              value="{{ voluntario.email if voluntario else '' }}" required>
     </div>
 
+    <!-- Data de Nascimento -->
+    <div>
+      <label class="block text-sm font-medium mb-1">Data de Nascimento</label>
+      <input type="date" name="data_nascimento" class="w-full rounded-lg border border-gray-300 p-2"
+            value="{{ voluntario.data_nascimento.strftime('%Y-%m-%d') if voluntario and voluntario.data_nascimento else '' }}">
+    </div>
+
     <!-- Cartão RFID -->
     <div>
       <label class="block text-sm font-medium mb-1" for="id_cartao">Cartão RFID</label>
