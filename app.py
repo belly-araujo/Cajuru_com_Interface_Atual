@@ -743,90 +743,114 @@ def get_mqtt_db_connection():
         database="cajuru_com_interface"
     )
 
-def ao_mensagem(client, userdata, msg): #quando chega uma mensagem no topico
+def ao_mensagem(client, userdata, msg):
+    """Processa mensagens MQTT com tratamento correto de conexões"""
     global ultimo_cartao_lido
+    
+    # Parse da mensagem
     try:
-        dados = json.loads(msg.payload.decode())  # decodifica JSON
-        tipo = dados.get("tipo", "rfid") #pega o tipo de dado (rfid ou cpf)
+        dados = json.loads(msg.payload.decode())
+        tipo = dados.get("tipo", "rfid")
     except Exception as e:
         print("⚠️ Mensagem inválida recebida:", msg.payload.decode())
         return
 
-    hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S") #pega a hora atual para o historico
+    hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Cria conexão e cursor com tratamento adequado
+    mqtt_db = None
+    cursor = None
+    
+    try:
+        mqtt_db = get_mqtt_db_connection()
+        cursor = mqtt_db.cursor(dictionary=True, buffered=True)  # buffered=True previne erros
+        
+        # --- Caso 1: RFID detectado ---
+        if tipo == "rfid":
+            id_cartao = dados.get("id", "desconhecido")
+            ultimo_cartao_lido = id_cartao
 
-    # --- Cria conexão exclusiva do MQTT ---
-    mqtt_db = get_mqtt_db_connection()
-    cursor = mqtt_db.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM users WHERE id_cartao = %s", (id_cartao,))
+            usuario = cursor.fetchone()
+            
+            if usuario:
+                user_id = usuario["id"]
+                nome = usuario["nome"]
+                cpf = usuario.get("cpf", "")
+                email = usuario["email"]
 
-    # --- Caso 1: RFID detectado ---
-    if tipo == "rfid":
-        id_cartao = dados.get("id", "desconhecido")
-        ultimo_cartao_lido = id_cartao
+                # Determina ação (entrada/saída)
+                acao = "entrada" if status_voluntarios.get(id_cartao) != "entrada" else "saida"
+                status_voluntarios[id_cartao] = acao
 
-        cursor.execute("SELECT * FROM users WHERE id_cartao = %s", (id_cartao,))
-        usuario = cursor.fetchone() 
-        if usuario:
-            user_id = usuario["id"]
-            nome = usuario["nome"]
-            cpf = usuario["cpf"]
-            email = usuario["email"]
+                # Insere no histórico
+                cursor.execute(
+                    "INSERT INTO historico (user_id, nome, cpf, email, acao, horario) "
+                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                    (user_id, nome, cpf, email, acao, hora)
+                )
+                mqtt_db.commit()
 
-            acao = "entrada" if status_voluntarios.get(id_cartao) != "entrada" else "saida"
-            status_voluntarios[id_cartao] = acao
+                # Atualiza dispositivo
+                cursor.execute(
+                    "UPDATE devices SET ultima_comunicacao = %s WHERE nome = 'Módulo RFID'",
+                    (hora,)
+                )
+                mqtt_db.commit()
 
-            cursor.execute(
-                "INSERT INTO historico (user_id, nome, cpf, email, acao, horario) "
-                "VALUES (%s, %s, %s, %s, %s, %s)",
-                (user_id, nome, cpf, email, acao, hora)
-            )
-            mqtt_db.commit()  # confirma o insert
+                print(f"✅ {hora} - {nome} registrou {acao.upper()} com cartão {id_cartao}")
+            else:
+                print(f"⚠️ {hora} - RFID {id_cartao} não cadastrado!")
 
-            cursor.execute(
-            "UPDATE devices SET ultima_comunicacao = %s WHERE nome = 'Módulo RFID'",
-            (hora,)
-            )
-            mqtt_db.commit()
+        # --- Caso 2: CPF completo enviado ---
+        elif tipo == "cpf":
+            cpf = dados.get("cpf", "desconhecido")
+            
+            cursor.execute("SELECT * FROM users WHERE cpf = %s", (cpf,))
+            usuario = cursor.fetchone()
+            
+            if usuario:
+                user_id = usuario["id"]
+                nome = usuario["nome"]
+                email = usuario["email"]
 
+                # Determina ação (entrada/saída)
+                acao = "entrada" if status_voluntarios.get(cpf) != "entrada" else "saida"
+                status_voluntarios[cpf] = acao
+
+                # Insere no histórico
+                cursor.execute(
+                    "INSERT INTO historico (user_id, nome, cpf, email, acao, horario) "
+                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                    (user_id, nome, cpf, email, acao, hora)
+                )
+                mqtt_db.commit()
+
+                # Atualiza dispositivo
+                cursor.execute(
+                    "UPDATE devices SET ultima_comunicacao = %s WHERE nome = 'Teclado matricial'",
+                    (hora,)
+                )
+                mqtt_db.commit()
+
+                print(f"✅ {hora} - {nome} CPF {cpf} registrou {acao.upper()}")
+            else:
+                print(f"⚠️ {hora} - CPF {cpf} não cadastrado!")
+    
+    except mysql.connector.Error as db_error:
+        print(f"❌ Erro no banco de dados: {db_error}")
+        if mqtt_db:
+            mqtt_db.rollback()
+    
+    except Exception as e:
+        print(f"❌ Erro inesperado no MQTT: {e}")
+    
+    finally:
+        # SEMPRE fecha recursos na ordem correta
+        if cursor:
             cursor.close()
+        if mqtt_db and mqtt_db.is_connected():
             mqtt_db.close()
-            print(f"{hora} - {nome} registrou {acao.upper()} com cartão {id_cartao}")
-        else:
-            print(f"⚠️ {hora} - RFID {id_cartao} não cadastrado!")
-
-    # --- Caso 3: CPF completo enviado ---
-    elif tipo == "cpf":
-        cpf = dados.get("cpf", "desconhecido")
-        cursor.execute("SELECT * FROM users WHERE cpf = %s", (cpf,))
-        usuario = cursor.fetchone()
-        if usuario:
-            user_id = usuario["id"]
-            nome = usuario["nome"]
-            email = usuario["email"]
-
-            acao = "entrada" if status_voluntarios.get(cpf) != "entrada" else "saida"
-            status_voluntarios[cpf] = acao
-
-            cursor.execute(
-                "INSERT INTO historico (user_id, nome, cpf, email, acao, horario) "
-                "VALUES (%s, %s, %s, %s, %s, %s)",
-                (user_id, nome, cpf, email, acao, hora)
-            )
-            mqtt_db.commit()
-
-                # 🔸 Atualiza o dispositivo correspondente
-            cursor.execute(
-                "UPDATE devices SET ultima_comunicacao = %s WHERE nome = 'Teclado matricial'",
-                (hora,)
-            )
-            mqtt_db.commit()
-
-            print(f"{hora} - {nome} CPF {cpf} registrou {acao.upper()}")
-        else:
-            print(f"⚠️ {hora} - CPF {cpf} não cadastrado!")
-
-    # Fecha conexão do MQTT
-    cursor.close()
-    mqtt_db.close()
 
 # 🚀 Cria o cliente MQTT
 def iniciar_mqtt():
